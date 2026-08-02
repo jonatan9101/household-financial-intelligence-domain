@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/HouseholdFinancialIntelligence.Api/HouseholdFinancialIntelligence.Api.csproj" />
+    <Project Path="src/HouseholdFinancialIntelligence.Application/HouseholdFinancialIntelligence.Application.csproj" />
+    <Project Path="src/HouseholdFinancialIntelligence.Domain/HouseholdFinancialIntelligence.Domain.csproj" />
+    <Project Path="src/HouseholdFinancialIntelligence.Infrastructure/HouseholdFinancialIntelligence.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/HouseholdFinancialIntelligence.Tests/HouseholdFinancialIntelligence.Tests.csproj" />
+  </Folder>
+</Solution>
