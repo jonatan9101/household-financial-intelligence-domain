@@ -62,7 +62,7 @@ Checklist:
 
 ## M2 — FinancialMovement Aggregate (minimal)
 
-**Status:** pending
+**Status:** done
 
 - **Goal:** Minimal aggregate for Register Financial Movement only. Excluded: `MerchantReference`, `MovementStatus`, Categorization, Interpretation, AI concepts.
 - **Business capability:** Financial Acquisition → Register Financial Movement.
@@ -80,14 +80,14 @@ Checklist:
 
 Checklist:
 
-- [ ] `FinancialMovement` aggregate with `Register(...)` factory
-- [ ] `FinancialMovementId`, `MovementType`, `TransactionDate`, `EvidenceReference` value objects (immutable)
-- [ ] `FinancialMovementRegistered` domain event
-- [ ] `IFinancialMovementRepository` in `Domain/Repositories` (ExistsByEvidenceReferenceAsync + Add, no Save)
-- [ ] No MerchantReference / MovementStatus / Categorization / Interpretation
-- [ ] Invariants FM-001..004 protected
-- [ ] Tests written (register, immutability, FM-002/003/004, event published)
-- [ ] Build passes, tests pass
+- [x] `FinancialMovement` aggregate with `Register(...)` factory
+- [x] `FinancialMovementId`, `MovementType`, `TransactionDate`, `EvidenceReference` value objects (immutable)
+- [x] `FinancialMovementRegistered` domain event
+- [x] `IFinancialMovementRepository` in `Domain/Repositories` (ExistsByEvidenceReferenceAsync + Add, no Save)
+- [x] No MerchantReference / MovementStatus / Categorization / Interpretation
+- [x] Invariants FM-001..004 protected
+- [x] Tests written (register, immutability, FM-002/003/004, event published)
+- [x] Build passes, tests pass
 
 ---
 
@@ -223,6 +223,10 @@ Checklist:
 - [ ] Manual: register + list through the UI
 
 ---
+
+## Documentation Backlog
+
+- [ ] **TODO** — Define the canonical MovementType taxonomy. `MovementType` is currently an unconstrained string Value Object (not null / not empty / trimmed). The FM-003 `UnsupportedMovementType` business rule must NOT be enforced until an authoritative taxonomy exists (the Financial Movement examples in `docs/01-business/01-ubiquitous-language.md` are illustrative, not normative). Once defined, `MovementType` can evolve into a constrained Value Object or enum without changing the aggregate's responsibilities.
 
 ## Key Decisions (locked)
 
