@@ -10,7 +10,7 @@ public sealed record EvidenceReference
     {
         if (string.IsNullOrWhiteSpace(value))
         {
-            throw new DomainException("EvidenceReference is required.");
+            throw new DomainException(DomainErrors.EvidenceReference.Required);
         }
 
         Value = value;

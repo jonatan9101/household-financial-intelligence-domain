@@ -10,7 +10,7 @@ public sealed record MovementType
     {
         if (string.IsNullOrWhiteSpace(name))
         {
-            throw new DomainException("MovementType cannot be null or empty.");
+            throw new DomainException(DomainErrors.MovementType.CannotBeNullOrEmpty);
         }
 
         Name = name.Trim();

@@ -40,32 +40,39 @@ public sealed class FinancialMovement : AggregateRoot<FinancialMovementId>
 
     public IReadOnlyCollection<FinancialMovementRegistered> DomainEvents => _domainEvents;
 
+    internal void ClearDomainEvents()
+    {
+        _domainEvents.Clear();
+    }
+
     public static FinancialMovement Register(
         HouseholdId householdId,
         FinancialAccountId financialAccountId,
-        Money amount,
-        MovementType movementType,
-        TransactionDate transactionDate,
-        EvidenceReference evidenceReference)
+        decimal amount,
+        string currency,
+        string movementType,
+        DateOnly transactionDate,
+        string evidenceReference,
+        DateTimeOffset occurredAt)
     {
-        ArgumentNullException.ThrowIfNull(amount);
-        ArgumentNullException.ThrowIfNull(movementType);
-        ArgumentNullException.ThrowIfNull(transactionDate);
-        ArgumentNullException.ThrowIfNull(evidenceReference);
+        var money = new Money(amount, new Currency(currency));
+        var movementTypeValue = new MovementType(movementType);
+        var transactionDateValue = new TransactionDate(transactionDate);
+        var evidenceReferenceValue = new EvidenceReference(evidenceReference);
 
-        if (amount.Amount <= 0)
+        if (money.Amount <= 0)
         {
-            throw new DomainException("Amount must be greater than zero.");
+            throw new DomainException(DomainErrors.FinancialMovement.AmountMustBeGreaterThanZero);
         }
 
         var movement = new FinancialMovement(
             FinancialMovementId.New(),
             householdId,
             financialAccountId,
-            amount,
-            movementType,
-            transactionDate,
-            evidenceReference);
+            money,
+            movementTypeValue,
+            transactionDateValue,
+            evidenceReferenceValue);
 
         movement._domainEvents.Add(new FinancialMovementRegistered(
             movement.Id,
@@ -74,7 +81,7 @@ public sealed class FinancialMovement : AggregateRoot<FinancialMovementId>
             movement.Amount.Amount,
             movement.Amount.Currency,
             movement.MovementType,
-            DateTimeOffset.UtcNow));
+            occurredAt));
 
         return movement;
     }

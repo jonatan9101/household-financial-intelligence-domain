@@ -11,40 +11,47 @@ public class FinancialMovementTests
 {
     private static readonly Currency Usd = new("USD");
 
+    private static readonly DateTimeOffset OccurredAt = new(2026, 7, 1, 12, 0, 0, TimeSpan.Zero);
+
     private static FinancialMovement RegisterValidMovement() =>
         FinancialMovement.Register(
             new HouseholdId(Guid.NewGuid()),
             new FinancialAccountId(Guid.NewGuid()),
-            new Money(150.00m, Usd),
-            new MovementType("Purchase"),
-            new TransactionDate(new DateOnly(2026, 7, 1)),
-            new EvidenceReference("receipt-2026-07-001"));
+            150.00m,
+            "USD",
+            "Purchase",
+            new DateOnly(2026, 7, 1),
+            "receipt-2026-07-001",
+            OccurredAt);
 
     [Fact]
     public void Given_ValidFacts_When_Registering_Then_AggregateReflectsThoseFacts()
     {
         var householdId = new HouseholdId(Guid.NewGuid());
         var financialAccountId = new FinancialAccountId(Guid.NewGuid());
-        var amount = new Money(150.00m, Usd);
-        var movementType = new MovementType("Purchase");
-        var transactionDate = new TransactionDate(new DateOnly(2026, 7, 1));
-        var evidenceReference = new EvidenceReference("receipt-2026-07-001");
+        var amount = 150.00m;
+        var currency = "USD";
+        var movementType = "Purchase";
+        var transactionDate = new DateOnly(2026, 7, 1);
+        var evidenceReference = "receipt-2026-07-001";
 
         var movement = FinancialMovement.Register(
             householdId,
             financialAccountId,
             amount,
+            currency,
             movementType,
             transactionDate,
-            evidenceReference);
+            evidenceReference,
+            OccurredAt);
 
         movement.Id.Value.Should().NotBe(Guid.Empty);
         movement.HouseholdId.Should().Be(householdId);
         movement.FinancialAccountId.Should().Be(financialAccountId);
-        movement.Amount.Should().Be(amount);
-        movement.MovementType.Should().Be(movementType);
-        movement.TransactionDate.Should().Be(transactionDate);
-        movement.EvidenceReference.Should().Be(evidenceReference);
+        movement.Amount.Should().Be(new Money(amount, Usd));
+        movement.MovementType.Should().Be(new MovementType(movementType));
+        movement.TransactionDate.Should().Be(new TransactionDate(transactionDate));
+        movement.EvidenceReference.Should().Be(new EvidenceReference(evidenceReference));
     }
 
     [Fact]
@@ -60,7 +67,17 @@ public class FinancialMovementTests
         registered.Amount.Should().Be(movement.Amount.Amount);
         registered.Currency.Should().Be(movement.Amount.Currency);
         registered.MovementType.Should().Be(movement.MovementType);
-        registered.OccurredAt.Should().BeOnOrBefore(DateTimeOffset.UtcNow);
+        registered.OccurredAt.Should().Be(OccurredAt);
+    }
+
+    [Fact]
+    public void Given_RegisteredMovement_When_ClearingDomainEvents_Then_NoEventsRemain()
+    {
+        var movement = RegisterValidMovement();
+
+        movement.ClearDomainEvents();
+
+        movement.DomainEvents.Should().BeEmpty();
     }
 
     [Theory]
@@ -71,26 +88,14 @@ public class FinancialMovementTests
         var action = () => FinancialMovement.Register(
             new HouseholdId(Guid.NewGuid()),
             new FinancialAccountId(Guid.NewGuid()),
-            new Money(amount, Usd),
-            new MovementType("Purchase"),
-            new TransactionDate(new DateOnly(2026, 7, 1)),
-            new EvidenceReference("receipt-2026-07-001"));
+            amount,
+            "USD",
+            "Purchase",
+            new DateOnly(2026, 7, 1),
+            "receipt-2026-07-001",
+            OccurredAt);
 
         action.Should().Throw<DomainException>();
-    }
-
-    [Fact]
-    public void Given_NullAmount_When_Registering_Then_ArgumentNullExceptionIsThrown()
-    {
-        var action = () => FinancialMovement.Register(
-            new HouseholdId(Guid.NewGuid()),
-            new FinancialAccountId(Guid.NewGuid()),
-            null!,
-            new MovementType("Purchase"),
-            new TransactionDate(new DateOnly(2026, 7, 1)),
-            new EvidenceReference("receipt-2026-07-001"));
-
-        action.Should().Throw<ArgumentNullException>();
     }
 
     [Fact]

@@ -10,7 +10,7 @@ public sealed record TransactionDate
     {
         if (value == default)
         {
-            throw new DomainException("TransactionDate is required.");
+            throw new DomainException(DomainErrors.TransactionDate.Required);
         }
 
         Value = value;

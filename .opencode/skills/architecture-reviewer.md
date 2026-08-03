@@ -440,3 +440,29 @@ If the answer is NO,
 do not implement it.
 
 Delete complexity instead of adding it.
+
+## Time Rule
+
+The Domain must never obtain the current date or time directly.
+
+Do not use:
+
+- DateTime.Now
+- DateTime.UtcNow
+- DateTimeOffset.Now
+- DateTimeOffset.UtcNow
+
+Time must be provided by the caller or an abstraction owned by the Application layer.
+
+This keeps the Domain deterministic and fully testable.
+
+An Application Service may orchestrate the execution of business rules,
+but it must never decide them.
+
+If moving a line of code from the Application layer to the Aggregate changes business behavior,
+that line belongs in the Domain.
+
+Application Services must never instantiate Value Objects
+that belong to an Aggregate unless explicitly documented.
+
+Whenever possible, Aggregates construct and own their internal model.

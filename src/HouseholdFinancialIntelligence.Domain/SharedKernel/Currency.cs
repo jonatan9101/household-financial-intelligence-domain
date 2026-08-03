@@ -8,7 +8,7 @@ public sealed record Currency
     {
         if (code is null || code.Length != 3 || !code.All(char.IsAsciiLetter))
         {
-            throw new DomainException("Currency must be a 3-letter ISO 4217 code.");
+            throw new DomainException(DomainErrors.Currency.InvalidIso4217Code);
         }
 
         Code = code.ToUpperInvariant();
