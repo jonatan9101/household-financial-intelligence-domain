@@ -7,7 +7,12 @@ internal sealed class RecordingFinancialMovementRepository : IFinancialMovementR
 {
     private readonly HashSet<EvidenceReference> _existingEvidenceReferences = [];
 
-    public List<string> CallLog { get; } = [];
+    public List<string> CallLog { get; }
+
+    public RecordingFinancialMovementRepository(List<string>? callLog = null)
+    {
+        CallLog = callLog ?? [];
+    }
 
     public FinancialMovement? Added { get; private set; }
 

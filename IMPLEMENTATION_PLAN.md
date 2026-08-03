@@ -152,28 +152,40 @@ Checklist:
 
 ## M5 — Minimal API + HTTP Mapping + DI
 
-**Status:** pending
+**Status:** done
 
-- **Goal:** Expose Register Financial Movement over HTTP. Explicit `SaveChangesAsync` called by the Application/API after orchestration (never inside the repository). Exception middleware maps business errors to HTTP.
+- **Goal:** Expose Register Financial Movement over HTTP. Transaction completes inside the Application use case via a minimal `ISaveChanges` port (never inside the repository, never in the endpoint). Exception middleware maps business errors to HTTP.
 - **Business capability:** Register Financial Movement end-to-end.
-- **Files expected:**
-  - `src/HouseholdFinancialIntelligence.Api/Program.cs` (DI wiring, `SaveChangesAsync` orchestration)
-  - `src/HouseholdFinancialIntelligence.Api/Endpoints/FinancialMovementsEndpoints.cs`
+- **Files created:**
+  - `src/HouseholdFinancialIntelligence.Api/Program.cs` (DI wiring; no migrations at startup)
+  - `src/HouseholdFinancialIntelligence.Api/Endpoints/FinancialMovementsEndpoints.cs` (request DTO + `POST /api/financial-movements`)
   - `src/HouseholdFinancialIntelligence.Api/Middleware/DomainExceptionMiddleware.cs` (ProblemDetails)
-  - `DomainException.ErrorCode` mapping (FM-001 → 409, syntactic/invalid → 400, success → 201)
-  - Infrastructure `DependencyInjection.cs` (EF + repository registration)
-  - Api `appsettings` dev + Supabase connection strings
+  - `src/HouseholdFinancialIntelligence.Application/Persistence/ISaveChanges.cs` (single-method Application port)
+  - `src/HouseholdFinancialIntelligence.Infrastructure/Persistence/SaveChanges.cs` (delegates to `DbContext.SaveChangesAsync`)
+  - `src/HouseholdFinancialIntelligence.Infrastructure/DependencyInjection.cs` (DbContext, repository, `ISaveChanges`)
+  - `src/HouseholdFinancialIntelligence.Domain/SharedKernel/DomainErrorCode.cs` (strongly typed error code, no primitive obsession)
+  - `DomainException.ErrorCode` + `DomainErrors.FinancialMovement.DuplicateMovementCode` (`FM-001`)
+  - Api `appsettings.json` / `appsettings.Development.json` connection strings
+- **Mapping:** `DomainErrorCode FM-001` → 409; other `DomainException` → 400; invalid/malformed body → 400; `DbUpdateException` (unique-index race) → 409; unhandled → 500. Success → 201 `{ id }` + Location.
+- **Migrations are NOT auto-applied at startup** — the application never mutates the database. Schema is applied explicitly.
+- **Runbook (dev):**
+  1. `docker compose up -d` (Postgres 16, container `hfi-postgres`)
+  2. Apply migrations explicitly: `dotnet ef database update --project src/HouseholdFinancialIntelligence.Infrastructure --startup-project tools/PersistenceSmoke`
+  3. Run: `dotnet run --project src/HouseholdFinancialIntelligence.Api` (Development reads `appsettings.Development.json`; prod must set `ConnectionStrings__Default`)
+  4. Smoke: `curl -X POST localhost:5114/api/financial-movements -H "Content-Type: application/json" -d @body.json` → 201; repeat → 409 `FM-001`; invalid input → 400.
 - **Acceptance criteria:** `POST /api/financial-movements` returns `FinancialMovementId`; duplicate → 409; invalid → 400. **First usable MVP.**
 - **Dependencies:** M4.
 
 Checklist:
 
-- [ ] DI registration (DbContext, repository) in Infrastructure
-- [ ] Exception middleware → ProblemDetails (409 / 400)
-- [ ] POST endpoint + syntactic validation
-- [ ] Explicit `SaveChangesAsync` after orchestration
-- [ ] Manual smoke: register, duplicate, invalid
-- [ ] Build passes
+- [x] DI registration (DbContext, repository, `ISaveChanges`) in Infrastructure
+- [x] `ISaveChanges` Application port — transaction completes in the use case; repository and endpoint stay clean
+- [x] Exception middleware → ProblemDetails (409 / 400 / 500)
+- [x] POST endpoint + request DTO + endpoint-only syntactic validation
+- [x] Strongly typed `DomainErrorCode` (FM-001) — no primitive obsession
+- [x] No migrations at startup; migration execution stays explicit
+- [x] Manual smoke: register → 201, duplicate → 409, invalid/malformed → 400
+- [x] Build 0 warnings/errors; 91 tests pass; Domain + Application 100% line/branch coverage
 
 ---
 
@@ -228,7 +240,7 @@ Checklist:
 
 - No CQRS. Terminology: Application Service / Use Case (never "Handler").
 - Repository interface lives in `Domain/Repositories`, contract = `ExistsByEvidenceReferenceAsync` + `AddAsync` (no `Save`).
-- Repository stages entities; the transaction is completed by an explicit `SaveChangesAsync` outside the repository (Application/API layer). No `IUnitOfWork`.
+- Repository stages entities; the transaction is completed inside the Application use case via the minimal `ISaveChanges` port (single `SaveChangesAsync`), implemented by Infrastructure. No `IUnitOfWork`, no commit inside the repository, no commit in the endpoint.
 - Duplicate detection: existence check + domain `Register()` + unique constraint (last line of defense). No DuplicateDetectionService / CorrelationId / idempotency.
 - Persistence order: EF Core + PostgreSQL persistence first (M4), Minimal API after (M5). No in-memory repository.
 - Authentication after the app is usable (M6).

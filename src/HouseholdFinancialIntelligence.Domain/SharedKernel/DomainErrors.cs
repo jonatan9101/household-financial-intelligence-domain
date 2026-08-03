@@ -15,6 +15,7 @@ public static class DomainErrors
 
     public static class FinancialMovement
     {
+        public static readonly DomainErrorCode DuplicateMovementCode = new("FM-001");
         public const string AmountMustBeGreaterThanZero = "Amount must be greater than zero.";
         public const string DuplicateMovement = "A movement with the same evidence reference already exists.";
     }
