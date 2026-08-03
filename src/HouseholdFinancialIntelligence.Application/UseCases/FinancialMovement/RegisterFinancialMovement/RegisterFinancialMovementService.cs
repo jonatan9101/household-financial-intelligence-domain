@@ -1,3 +1,4 @@
+using HouseholdFinancialIntelligence.Application.Persistence;
 using HouseholdFinancialIntelligence.Domain.Aggregates.FinancialMovement;
 using HouseholdFinancialIntelligence.Domain.Repositories;
 using HouseholdFinancialIntelligence.Domain.SharedKernel;
@@ -8,10 +9,14 @@ namespace HouseholdFinancialIntelligence.Application.UseCases.FinancialMovement.
 public sealed class RegisterFinancialMovementService
 {
     private readonly IFinancialMovementRepository _repository;
+    private readonly ISaveChanges _saveChanges;
 
-    public RegisterFinancialMovementService(IFinancialMovementRepository repository)
+    public RegisterFinancialMovementService(
+        IFinancialMovementRepository repository,
+        ISaveChanges saveChanges)
     {
         _repository = repository;
+        _saveChanges = saveChanges;
     }
 
     public async Task<FinancialMovementId> RegisterAsync(
@@ -24,7 +29,9 @@ public sealed class RegisterFinancialMovementService
 
         if (await _repository.ExistsByEvidenceReferenceAsync(evidenceReference, cancellationToken))
         {
-            throw new DomainException(DomainErrors.FinancialMovement.DuplicateMovement);
+            throw new DomainException(
+                DomainErrors.FinancialMovement.DuplicateMovementCode,
+                DomainErrors.FinancialMovement.DuplicateMovement);
         }
 
         var movement = FinancialMovementAggregate.Register(
@@ -38,6 +45,8 @@ public sealed class RegisterFinancialMovementService
             command.OccurredAt);
 
         await _repository.AddAsync(movement, cancellationToken);
+
+        await _saveChanges.SaveChangesAsync(cancellationToken);
 
         return movement.Id;
     }

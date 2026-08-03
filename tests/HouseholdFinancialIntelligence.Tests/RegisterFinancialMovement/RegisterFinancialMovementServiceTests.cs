@@ -23,14 +23,21 @@ public class RegisterFinancialMovementServiceTests
             "receipt-2026-07-001",
             OccurredAt);
 
-    private static RegisterFinancialMovementService CreateService(RecordingFinancialMovementRepository repository) =>
-        new(repository);
+    private static (
+        RegisterFinancialMovementService Service,
+        RecordingFinancialMovementRepository Repository,
+        RecordingSaveChanges SaveChanges) CreateService()
+    {
+        var callLog = new List<string>();
+        var repository = new RecordingFinancialMovementRepository(callLog);
+        var saveChanges = new RecordingSaveChanges(callLog);
+        return (new RegisterFinancialMovementService(repository, saveChanges), repository, saveChanges);
+    }
 
     [Fact]
     public async Task Given_ValidCommand_When_Registering_Then_ReturnsANewFinancialMovementId()
     {
-        var repository = new RecordingFinancialMovementRepository();
-        var service = CreateService(repository);
+        var (service, repository, _) = CreateService();
 
         var result = await service.RegisterAsync(ValidCommand(), CancellationToken.None);
 
@@ -42,8 +49,7 @@ public class RegisterFinancialMovementServiceTests
     public async Task Given_ValidCommand_When_Registering_Then_PersistedAggregateReflectsCommandFacts()
     {
         var command = ValidCommand();
-        var repository = new RecordingFinancialMovementRepository();
-        var service = CreateService(repository);
+        var (service, repository, _) = CreateService();
 
         await service.RegisterAsync(command, CancellationToken.None);
 
@@ -58,21 +64,32 @@ public class RegisterFinancialMovementServiceTests
     }
 
     [Fact]
-    public async Task Given_ValidCommand_When_Registering_Then_RepositoryCallsOccurInOrderExistsThenAddAsync()
+    public async Task Given_ValidCommand_When_Registering_Then_RepositoryCallsOccurInOrderExistsAddThenSaveChanges()
     {
-        var repository = new RecordingFinancialMovementRepository();
-        var service = CreateService(repository);
+        var (service, repository, _) = CreateService();
 
         await service.RegisterAsync(ValidCommand(), CancellationToken.None);
 
-        repository.CallLog.Should().Equal(nameof(RecordingFinancialMovementRepository.ExistsByEvidenceReferenceAsync), nameof(RecordingFinancialMovementRepository.AddAsync));
+        repository.CallLog.Should().Equal(
+            nameof(RecordingFinancialMovementRepository.ExistsByEvidenceReferenceAsync),
+            nameof(RecordingFinancialMovementRepository.AddAsync),
+            nameof(RecordingSaveChanges.SaveChangesAsync));
+    }
+
+    [Fact]
+    public async Task Given_ValidCommand_When_Registering_Then_SaveChangesIsCalledExactlyOnce()
+    {
+        var (service, _, saveChanges) = CreateService();
+
+        await service.RegisterAsync(ValidCommand(), CancellationToken.None);
+
+        saveChanges.CallLog.Count(entry => entry == nameof(RecordingSaveChanges.SaveChangesAsync)).Should().Be(1);
     }
 
     [Fact]
     public async Task Given_ValidCommand_When_Registering_Then_RegisterIsInvokedExactlyOnce()
     {
-        var repository = new RecordingFinancialMovementRepository();
-        var service = CreateService(repository);
+        var (service, repository, _) = CreateService();
 
         await service.RegisterAsync(ValidCommand(), CancellationToken.None);
 
@@ -88,9 +105,8 @@ public class RegisterFinancialMovementServiceTests
     public async Task Given_ExistingEvidenceReference_When_Registering_Then_DomainExceptionIsThrown_AndAddAsyncIsNotCalled()
     {
         var command = ValidCommand();
-        var repository = new RecordingFinancialMovementRepository();
+        var (service, repository, saveChanges) = CreateService();
         repository.Seed(new EvidenceReference(command.EvidenceReference));
-        var service = CreateService(repository);
 
         var action = () => service.RegisterAsync(command, CancellationToken.None);
 
@@ -98,14 +114,27 @@ public class RegisterFinancialMovementServiceTests
             .WithMessage(DomainErrors.FinancialMovement.DuplicateMovement);
         repository.CallLog.Should().Equal(nameof(RecordingFinancialMovementRepository.ExistsByEvidenceReferenceAsync));
         repository.Added.Should().BeNull();
+        saveChanges.CallLog.Should().NotContain(nameof(RecordingSaveChanges.SaveChangesAsync));
+    }
+
+    [Fact]
+    public async Task Given_ExistingEvidenceReference_When_Registering_Then_DomainExceptionCarriesDuplicateMovementCode()
+    {
+        var command = ValidCommand();
+        var (service, repository, _) = CreateService();
+        repository.Seed(new EvidenceReference(command.EvidenceReference));
+
+        var action = () => service.RegisterAsync(command, CancellationToken.None);
+
+        await action.Should().ThrowAsync<DomainException>()
+            .Where(exception => exception.ErrorCode == DomainErrors.FinancialMovement.DuplicateMovementCode);
     }
 
     [Fact]
     public async Task Given_NonPositiveAmount_When_Registering_Then_DomainExceptionIsThrown_AndAddAsyncIsNotCalled()
     {
         var command = ValidCommand() with { Amount = 0 };
-        var repository = new RecordingFinancialMovementRepository();
-        var service = CreateService(repository);
+        var (service, repository, saveChanges) = CreateService();
 
         var action = () => service.RegisterAsync(command, CancellationToken.None);
 
@@ -113,28 +142,28 @@ public class RegisterFinancialMovementServiceTests
             .WithMessage(DomainErrors.FinancialMovement.AmountMustBeGreaterThanZero);
         repository.CallLog.Should().Equal(nameof(RecordingFinancialMovementRepository.ExistsByEvidenceReferenceAsync));
         repository.Added.Should().BeNull();
+        saveChanges.CallLog.Should().NotContain(nameof(RecordingSaveChanges.SaveChangesAsync));
     }
 
     [Fact]
     public async Task Given_InvalidEvidenceReference_When_Registering_Then_DomainExceptionIsThrown_AndRepositoryIsNotCalled()
     {
         var command = ValidCommand() with { EvidenceReference = "   " };
-        var repository = new RecordingFinancialMovementRepository();
-        var service = CreateService(repository);
+        var (service, repository, saveChanges) = CreateService();
 
         var action = () => service.RegisterAsync(command, CancellationToken.None);
 
         await action.Should().ThrowAsync<DomainException>()
             .WithMessage(DomainErrors.EvidenceReference.Required);
         repository.CallLog.Should().BeEmpty();
+        saveChanges.CallLog.Should().BeEmpty();
     }
 
     [Fact]
     public async Task Given_InvalidMovementType_When_Registering_Then_DomainExceptionIsThrown_AndAddAsyncIsNotCalled()
     {
         var command = ValidCommand() with { MovementType = "   " };
-        var repository = new RecordingFinancialMovementRepository();
-        var service = CreateService(repository);
+        var (service, repository, saveChanges) = CreateService();
 
         var action = () => service.RegisterAsync(command, CancellationToken.None);
 
@@ -142,14 +171,14 @@ public class RegisterFinancialMovementServiceTests
             .WithMessage(DomainErrors.MovementType.CannotBeNullOrEmpty);
         repository.CallLog.Should().Equal(nameof(RecordingFinancialMovementRepository.ExistsByEvidenceReferenceAsync));
         repository.Added.Should().BeNull();
+        saveChanges.CallLog.Should().NotContain(nameof(RecordingSaveChanges.SaveChangesAsync));
     }
 
     [Fact]
     public async Task Given_InvalidCurrency_When_Registering_Then_DomainExceptionIsThrown_AndAddAsyncIsNotCalled()
     {
         var command = ValidCommand() with { Currency = "XX" };
-        var repository = new RecordingFinancialMovementRepository();
-        var service = CreateService(repository);
+        var (service, repository, saveChanges) = CreateService();
 
         var action = () => service.RegisterAsync(command, CancellationToken.None);
 
@@ -157,25 +186,25 @@ public class RegisterFinancialMovementServiceTests
             .WithMessage(DomainErrors.Currency.InvalidIso4217Code);
         repository.CallLog.Should().Equal(nameof(RecordingFinancialMovementRepository.ExistsByEvidenceReferenceAsync));
         repository.Added.Should().BeNull();
+        saveChanges.CallLog.Should().NotContain(nameof(RecordingSaveChanges.SaveChangesAsync));
     }
 
     [Fact]
     public async Task Given_NullCommand_When_Registering_Then_ArgumentNullExceptionIsThrown()
     {
-        var repository = new RecordingFinancialMovementRepository();
-        var service = CreateService(repository);
+        var (service, repository, saveChanges) = CreateService();
 
         var action = () => service.RegisterAsync(null!, CancellationToken.None);
 
         await action.Should().ThrowAsync<ArgumentNullException>();
         repository.CallLog.Should().BeEmpty();
+        saveChanges.CallLog.Should().BeEmpty();
     }
 
     [Fact]
     public async Task Given_ValidCommand_When_Registering_Then_ReturnedIdEqualsPersistedAggregateId()
     {
-        var repository = new RecordingFinancialMovementRepository();
-        var service = CreateService(repository);
+        var (service, repository, _) = CreateService();
 
         var result = await service.RegisterAsync(ValidCommand(), CancellationToken.None);
 
