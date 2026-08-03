@@ -117,64 +117,63 @@ Checklist:
 
 ---
 
-## M4 — Minimal API + In-Memory Repository (First Working MVP)
+## M4 — EF Core + PostgreSQL Persistence (no API)
 
-**Status:** pending
+**Status:** done
 
-- **Goal:** Capability works end-to-end BEFORE persistence. Runnable locally, no DB, no auth.
-- **Business capability:** Register Financial Movement end-to-end.
-- **Files expected:**
-  - `src/HouseholdFinancialIntelligence.Infrastructure/Persistence/InMemory/InMemoryFinancialMovementRepository.cs`
-  - `src/HouseholdFinancialIntelligence.Infrastructure/Persistence/InMemory/InMemoryUnitOfWork.cs` (no-op commit)
-  - `src/HouseholdFinancialIntelligence.Api/Program.cs` (DI wiring)
-  - `src/HouseholdFinancialIntelligence.Api/Endpoints/FinancialMovementsEndpoints.cs`
-  - Syntactic validation + business-error → HTTP mapping (FM-001 → 409, invalid → 400, success → 201)
-- **Acceptance criteria:** `POST /api/financial-movements` returns `FinancialMovementId`; duplicate returns `DuplicateMovement`; invalid returns 400. **This is the first usable MVP.**
+- **Goal:** Persistence ONLY for the existing `FinancialMovement` aggregate. No API, no endpoints, no DI, no middleware, no `IUnitOfWork`, no `SaveChangesAsync` inside the repository. The transaction is completed explicitly (smoke) and later by the Application/API layer (M5).
+- **Business capability:** Financial Acquisition (supporting).
+- **Files created:**
+  - `src/HouseholdFinancialIntelligence.Infrastructure/Persistence/HouseholdFinancialDbContext.cs` (`DbSet<FinancialMovement>`, applies configuration)
+  - `src/HouseholdFinancialIntelligence.Infrastructure/Persistence/FinancialMovementRepository.cs` (stages only — `AnyAsync` for `ExistsByEvidenceReferenceAsync`, `AddAsync` WITHOUT commit)
+  - `src/HouseholdFinancialIntelligence.Infrastructure/Persistence/Configurations/FinancialMovementConfiguration.cs`
+  - `src/HouseholdFinancialIntelligence.Infrastructure/Persistence/DesignTimeDbContextFactory.cs` (dev connection string for `dotnet ef`)
+  - EF migration `InitialCreate` + model snapshot
+  - `docker-compose.yml` (dev Postgres 16)
+  - `tools/PersistenceSmoke` (versioned round-trip smoke, NOT in slnx)
+  - NuGet: `Microsoft.EntityFrameworkCore` 10.0.10, `Npgsql.EntityFrameworkCore.PostgreSQL` 10.0.3
+- **Mapping decisions:** `Money` = EF owned type → two real columns `Amount` (numeric(18,2)) + `CurrencyCode` (varchar(3)); all other VOs and IDs via value converters; unique index `UX_FinancialMovement_Household_EvidenceReference` on `(HouseholdId, EvidenceReference)` as last line of defense.
+- **Proven EF Core limitation (root cause):** owned/complex navigations cannot be bound to constructor parameters (`Cannot bind 'amount'...`), and `FinancialMovement` had no write path for `Amount`. Minimal, behavior-neutral Domain adaptation approved and applied: `Amount` moved out of the private constructor into a private backing field `_amount` (get-only property preserved → aggregate stays immutable, `CanWrite == false`), assigned in the `Register` factory; EF injects via the field (`HasField("_amount")`, `FieldDuringConstruction`). `Money`, `Entity<TId>`, `AggregateRoot<TId>`, and the public API are untouched. Infrastructure adapts to the Domain.
+- **Acceptance criteria:** Migration applies; save/load round-trip of every VO/ID; duplicate evidence reference violates the unique constraint; `SaveChangesAsync` runs explicitly outside the repository; Domain/Application/Tests unchanged except the proven minimal adaptation.
 - **Dependencies:** M3.
 
 Checklist:
 
-- [ ] In-memory repository implementation
-- [ ] No-op `IUnitOfWork` implementation
-- [ ] DI wiring in `Program.cs`
-- [ ] POST endpoint + syntactic validation
-- [ ] Error mapping (409 / 400 / 201)
-- [ ] Manual smoke: register, duplicate, invalid
-- [ ] Build passes
+- [x] EF Core + Npgsql packages added
+- [x] DbContext + `FinancialMovementConfiguration` (OwnsOne Money → 2 columns, converters, unique index)
+- [x] `FinancialMovementRepository` (Add stages entity, no commit)
+- [x] Design-time factory for `dotnet ef`
+- [x] Migration created and applied (Docker Postgres)
+- [x] Docker Postgres for dev (docker-compose)
+- [x] `tools/PersistenceSmoke` round-trip: migrate, save, load, duplicate → `DbUpdateException`, SMOKE PASSED
+- [x] Build 0 warnings/errors; existing 76 tests pass unchanged
 
 ---
 
-## M5 — EF Core + PostgreSQL
+## M5 — Minimal API + HTTP Mapping + DI
 
 **Status:** pending
 
-- **Goal:** Replace in-memory with EF Core persistence. Dev: PostgreSQL via Docker. Prod: Supabase PostgreSQL. Unique constraint on `(HouseholdId, EvidenceReference)` as last line of defense.
-- **Business capability:** Financial Acquisition (supporting).
+- **Goal:** Expose Register Financial Movement over HTTP. Explicit `SaveChangesAsync` called by the Application/API after orchestration (never inside the repository). Exception middleware maps business errors to HTTP.
+- **Business capability:** Register Financial Movement end-to-end.
 - **Files expected:**
-  - `src/HouseholdFinancialIntelligence.Infrastructure/Persistence/HouseholdFinancialDbContext.cs`
-  - `src/HouseholdFinancialIntelligence.Infrastructure/Persistence/FinancialMovementRepository.cs`
-  - `src/HouseholdFinancialIntelligence.Infrastructure/Persistence/Configurations/FinancialMovementConfiguration.cs`
-  - `src/HouseholdFinancialIntelligence.Infrastructure/Persistence/UnitOfWork.cs` (CommitAsync → SaveChangesAsync)
-  - `src/HouseholdFinancialIntelligence.Infrastructure/DependencyInjection.cs`
-  - EF migration
-  - `docker-compose.yml` (dev Postgres)
+  - `src/HouseholdFinancialIntelligence.Api/Program.cs` (DI wiring, `SaveChangesAsync` orchestration)
+  - `src/HouseholdFinancialIntelligence.Api/Endpoints/FinancialMovementsEndpoints.cs`
+  - `src/HouseholdFinancialIntelligence.Api/Middleware/DomainExceptionMiddleware.cs` (ProblemDetails)
+  - `DomainException.ErrorCode` mapping (FM-001 → 409, syntactic/invalid → 400, success → 201)
+  - Infrastructure `DependencyInjection.cs` (EF + repository registration)
   - Api `appsettings` dev + Supabase connection strings
-  - NuGet: `Microsoft.EntityFrameworkCore`, `Npgsql.EntityFrameworkCore.PostgreSQL`
-- **Acceptance criteria:** Migration applies; Save/Load round-trip; duplicate evidence reference violates unique constraint.
+- **Acceptance criteria:** `POST /api/financial-movements` returns `FinancialMovementId`; duplicate → 409; invalid → 400. **First usable MVP.**
 - **Dependencies:** M4.
 
 Checklist:
 
-- [ ] EF Core + Npgsql packages added
-- [ ] DbContext + FinancialMovement configuration
-- [ ] `FinancialMovementRepository` (Add stages entity, no commit)
-- [ ] `UnitOfWork` implementing `CommitAsync` → `SaveChangesAsync`
-- [ ] DI registration in Infrastructure
-- [ ] Migration created and applied
-- [ ] Docker Postgres for dev (docker-compose)
-- [ ] Supabase connection string for prod in appsettings
-- [ ] Unique constraint on (HouseholdId, EvidenceReference)
-- [ ] Smoke: save/load round-trip, duplicate constraint violation
+- [ ] DI registration (DbContext, repository) in Infrastructure
+- [ ] Exception middleware → ProblemDetails (409 / 400)
+- [ ] POST endpoint + syntactic validation
+- [ ] Explicit `SaveChangesAsync` after orchestration
+- [ ] Manual smoke: register, duplicate, invalid
+- [ ] Build passes
 
 ---
 
@@ -229,9 +228,9 @@ Checklist:
 
 - No CQRS. Terminology: Application Service / Use Case (never "Handler").
 - Repository interface lives in `Domain/Repositories`, contract = `ExistsByEvidenceReferenceAsync` + `AddAsync` (no `Save`).
-- Commit = minimal `IUnitOfWork.CommitAsync()` (Application port), implemented by Infrastructure (`DbContext.SaveChangesAsync`); no-op for in-memory.
+- Repository stages entities; the transaction is completed by an explicit `SaveChangesAsync` outside the repository (Application/API layer). No `IUnitOfWork`.
 - Duplicate detection: existence check + domain `Register()` + unique constraint (last line of defense). No DuplicateDetectionService / CorrelationId / idempotency.
-- Persistence order: In-Memory first, then EF Core. First working MVP before persistence.
+- Persistence order: EF Core + PostgreSQL persistence first (M4), Minimal API after (M5). No in-memory repository.
 - Authentication after the app is usable (M6).
 - Dev DB: PostgreSQL via Docker. Prod DB: Supabase PostgreSQL.
 - Frontend: monorepo `/docs /src /tests /web`.

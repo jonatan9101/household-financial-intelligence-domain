@@ -9,18 +9,18 @@ public sealed class FinancialMovement : AggregateRoot<FinancialMovementId>
 {
     private readonly List<FinancialMovementRegistered> _domainEvents = [];
 
+    private Money _amount = default!;
+
     private FinancialMovement(
         FinancialMovementId id,
         HouseholdId householdId,
         FinancialAccountId financialAccountId,
-        Money amount,
         MovementType movementType,
         TransactionDate transactionDate,
         EvidenceReference evidenceReference) : base(id)
     {
         HouseholdId = householdId;
         FinancialAccountId = financialAccountId;
-        Amount = amount;
         MovementType = movementType;
         TransactionDate = transactionDate;
         EvidenceReference = evidenceReference;
@@ -30,7 +30,7 @@ public sealed class FinancialMovement : AggregateRoot<FinancialMovementId>
 
     public FinancialAccountId FinancialAccountId { get; }
 
-    public Money Amount { get; }
+    public Money Amount => _amount;
 
     public MovementType MovementType { get; }
 
@@ -69,10 +69,11 @@ public sealed class FinancialMovement : AggregateRoot<FinancialMovementId>
             FinancialMovementId.New(),
             householdId,
             financialAccountId,
-            money,
             movementTypeValue,
             transactionDateValue,
             evidenceReferenceValue);
+
+        movement._amount = money;
 
         movement._domainEvents.Add(new FinancialMovementRegistered(
             movement.Id,

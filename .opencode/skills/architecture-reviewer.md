@@ -466,3 +466,12 @@ Application Services must never instantiate Value Objects
 that belong to an Aggregate unless explicitly documented.
 
 Whenever possible, Aggregates construct and own their internal model.
+
+Persistence mappings must never change Domain behavior.
+
+If removing EF Core changes the business rules,
+the mapping is wrong.
+
+Mappings translate.
+
+They never decide.
