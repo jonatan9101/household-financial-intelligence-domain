@@ -93,30 +93,27 @@ Checklist:
 
 ## M3 — RegisterFinancialMovement Service
 
-**Status:** pending
+**Status:** done
 
-- **Goal:** Application orchestration with duplicate detection as a Domain concern.
+- **Goal:** Application orchestration for Register Financial Movement. The Application never makes business decisions: `FinancialMovement.Register(...)` receives only the facts that define the movement and constructs/validates its own Value Objects.
 - **Business capability:** Financial Acquisition → Register Financial Movement.
 - **Files expected:**
-  - `src/HouseholdFinancialIntelligence.Application/UseCases/RegisterFinancialMovement/RegisterFinancialMovementCommand.cs`
-  - `src/HouseholdFinancialIntelligence.Application/UseCases/RegisterFinancialMovement/RegisterFinancialMovementService.cs`
-  - `src/HouseholdFinancialIntelligence.Application/UseCases/RegisterFinancialMovement/RegisterFinancialMovementResult.cs`
-  - `src/HouseholdFinancialIntelligence.Application/Abstractions/IUnitOfWork.cs` (port: `CommitAsync`)
-  - Tests: `RegisterFinancialMovementServiceTests` (in-memory fake repository)
-- **Flow:** validate → `ExistsByEvidenceReference()` → duplicate returns FM-001 → `Register()` → `Add()` → `CommitAsync()` → return id.
-- **Acceptance criteria:** AC-001, AC-002. No `DuplicateDetectionService`, no `CorrelationId`, no idempotency service, no `Save()` in contract.
+  - `src/HouseholdFinancialIntelligence.Application/UseCases/FinancialMovement/RegisterFinancialMovement/RegisterFinancialMovementCommand.cs`
+  - `src/HouseholdFinancialIntelligence.Application/UseCases/FinancialMovement/RegisterFinancialMovement/RegisterFinancialMovementService.cs`
+  - Tests: `RegisterFinancialMovementServiceTests` (+ `RecordingFinancialMovementRepository` fake)
+- **Flow:** build `EvidenceReference` → `ExistsByEvidenceReferenceAsync()` → duplicate throws FM-001 (before Aggregate creation) → `Register()` → `AddAsync()` → return `FinancialMovementId`.
+- **Acceptance criteria:** AC-001, AC-002. No Handlers / MediatR / CQRS / Validators / UnitOfWork / EventBus / Domain Services / Result class. `IFinancialMovementRepository` contract unchanged (Domain concepts: `EvidenceReference`). No `Save()`.
 - **Dependencies:** M2.
 
 Checklist:
 
-- [ ] `RegisterFinancialMovementCommand` input type
-- [ ] `RegisterFinancialMovementService` (use-case namespace indicates purpose)
-- [ ] `RegisterFinancialMovementResult` (id / business error)
-- [ ] `IUnitOfWork` port in `Application/Abstractions`
-- [ ] Duplicate detection via `ExistsByEvidenceReference()` → FM-001
-- [ ] No DuplicateDetectionService / CorrelationId / idempotency
-- [ ] Tests written (happy path + commit called, duplicate no second movement, syntactic rejections)
-- [ ] Build passes, tests pass
+- [x] `RegisterFinancialMovementCommand` input type (IDs + primitives + OccurredAt)
+- [x] `RegisterFinancialMovementService` (orchestration only; returns `FinancialMovementId` directly)
+- [x] `FinancialMovement.Register(...)` receives only defining facts; owns VO creation/validation; enforces `Amount > 0`
+- [x] Duplicate detection in the Application flow via `ExistsByEvidenceReferenceAsync()` → FM-001, stops before `Register()`
+- [x] No DuplicateDetectionService / CorrelationId / idempotency / UnitOfWork
+- [x] Tests written (call order `Exists → AddAsync`, `Register()` invoked once, duplicate, syntactic rejections, returned id)
+- [x] Build passes (0 warnings/errors); 76 tests pass; Domain + Application 100% line/branch coverage
 
 ---
 
@@ -231,7 +228,7 @@ Checklist:
 ## Key Decisions (locked)
 
 - No CQRS. Terminology: Application Service / Use Case (never "Handler").
-- Repository interface lives in `Domain/Repositories`, contract = `ExistsByEvidenceReferenceAsync` + `Add` (no `Save`).
+- Repository interface lives in `Domain/Repositories`, contract = `ExistsByEvidenceReferenceAsync` + `AddAsync` (no `Save`).
 - Commit = minimal `IUnitOfWork.CommitAsync()` (Application port), implemented by Infrastructure (`DbContext.SaveChangesAsync`); no-op for in-memory.
 - Duplicate detection: existence check + domain `Register()` + unique constraint (last line of defense). No DuplicateDetectionService / CorrelationId / idempotency.
 - Persistence order: In-Memory first, then EF Core. First working MVP before persistence.

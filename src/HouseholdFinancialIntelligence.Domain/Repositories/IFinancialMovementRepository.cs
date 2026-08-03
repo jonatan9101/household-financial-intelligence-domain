@@ -8,5 +8,7 @@ public interface IFinancialMovementRepository
         EvidenceReference evidenceReference,
         CancellationToken cancellationToken);
 
-    void Add(FinancialMovement financialMovement);
+    Task AddAsync(
+        FinancialMovement financialMovement,
+        CancellationToken cancellationToken);
 }

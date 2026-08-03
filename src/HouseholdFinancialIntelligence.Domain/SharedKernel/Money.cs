@@ -10,12 +10,12 @@ public sealed record Money
     {
         if (amount < 0)
         {
-            throw new DomainException("Money amount cannot be negative.");
+            throw new DomainException(DomainErrors.Money.AmountCannotBeNegative);
         }
 
         if (currency is null)
         {
-            throw new DomainException("Money requires a currency.");
+            throw new DomainException(DomainErrors.Money.CurrencyRequired);
         }
 
         Amount = amount;

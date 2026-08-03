@@ -481,3 +481,14 @@ Instead of guessing:
 2. Present the available options.
 3. Recommend the simplest solution.
 4. Wait for human approval.
+
+An Application Service may orchestrate the execution of business rules,
+but it must never decide them.
+
+If moving a line of code from the Application layer to the Aggregate changes business behavior,
+that line belongs in the Domain.
+
+Application Services must never instantiate Value Objects
+that belong to an Aggregate unless explicitly documented.
+
+Whenever possible, Aggregates construct and own their internal model.
