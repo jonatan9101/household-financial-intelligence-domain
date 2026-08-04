@@ -1,13 +1,13 @@
 namespace HouseholdFinancialIntelligence.Domain.Aggregates.Household;
 
-public readonly record struct HouseholdId
+public readonly record struct MemberId
 {
     public Guid Value { get; }
 
-    public HouseholdId(Guid value)
+    public MemberId(Guid value)
     {
         Value = value;
     }
 
-    public static HouseholdId New() => new(Guid.NewGuid());
+    public static MemberId New() => new(Guid.NewGuid());
 }

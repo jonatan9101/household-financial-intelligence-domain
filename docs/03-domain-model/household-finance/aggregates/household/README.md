@@ -10,9 +10,9 @@ Every FinancialMovement, FinancialAccount, Budget and FinancialGoal belongs to e
 
 ## Responsibilities
 
-- Manage household lifecycle
-- Manage members and roles
-- Maintain base currency
+- Manage household lifecycle (Draft -> Active -> Archived)
+- Manage members and roles (exactly one active role per Member)
+- Maintain base currency (assigned in Draft, immutable once Active)
 - Maintain timezone and locale
 - Define ownership boundary
 
