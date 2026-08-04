@@ -87,7 +87,7 @@ public sealed class Household : AggregateRoot<HouseholdId>
             throw new DomainException(DomainErrors.Household.BaseCurrencyRequiredToActivate);
         }
 
-        if (_members.Count(member => member.Role == MemberRole.Owner) != 1)
+        if (!HasExactlyOneOwner())
         {
             throw new DomainException(DomainErrors.Household.ExactlyOneOwnerRequiredToActivate);
         }
@@ -107,7 +107,7 @@ public sealed class Household : AggregateRoot<HouseholdId>
             throw new DomainException(DomainErrors.Household.CannotJoinArchivedHousehold);
         }
 
-        if (_members.Any(member => member.Id == memberId))
+        if (FindMember(memberId) is not null)
         {
             throw new DomainException(DomainErrors.Household.DuplicateMember);
         }
@@ -122,13 +122,13 @@ public sealed class Household : AggregateRoot<HouseholdId>
 
     public void RemoveMember(MemberId memberId)
     {
-        var member = _members.SingleOrDefault(candidate => candidate.Id == memberId);
+        var member = FindMember(memberId);
         if (member is null)
         {
             throw new DomainException(DomainErrors.Household.MemberNotFound);
         }
 
-        if (member.Role == MemberRole.Owner && _members.Count(candidate => candidate.Role == MemberRole.Owner) == 1)
+        if (member.Role == MemberRole.Owner && HasExactlyOneOwner())
         {
             throw new DomainException(DomainErrors.Household.CannotRemoveLastOwner);
         }
@@ -138,7 +138,7 @@ public sealed class Household : AggregateRoot<HouseholdId>
 
     public void ChangeMemberRole(MemberId memberId, MemberRole newRole)
     {
-        var member = _members.SingleOrDefault(candidate => candidate.Id == memberId);
+        var member = FindMember(memberId);
         if (member is null)
         {
             throw new DomainException(DomainErrors.Household.MemberNotFound);
@@ -146,7 +146,7 @@ public sealed class Household : AggregateRoot<HouseholdId>
 
         if (member.Role == MemberRole.Owner
             && newRole != MemberRole.Owner
-            && _members.Count(candidate => candidate.Role == MemberRole.Owner) == 1)
+            && HasExactlyOneOwner())
         {
             throw new DomainException(DomainErrors.Household.CannotRemoveOwnerRoleFromLastOwner);
         }
@@ -168,7 +168,7 @@ public sealed class Household : AggregateRoot<HouseholdId>
             throw new DomainException(DomainErrors.Household.CannotArchiveExceptFromActiveState);
         }
 
-        var actor = _members.SingleOrDefault(member => member.Id == actedBy);
+        var actor = FindMember(actedBy);
         if (actor is null || actor.Role != MemberRole.Owner)
         {
             throw new DomainException(DomainErrors.Household.OnlyOwnerCanArchive);
@@ -181,4 +181,10 @@ public sealed class Household : AggregateRoot<HouseholdId>
             actedBy,
             occurredAt));
     }
+
+    private Member? FindMember(MemberId memberId) =>
+        _members.SingleOrDefault(member => member.Id == memberId);
+
+    private bool HasExactlyOneOwner() =>
+        _members.Count(member => member.Role == MemberRole.Owner) == 1;
 }
