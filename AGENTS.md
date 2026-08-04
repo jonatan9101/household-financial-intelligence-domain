@@ -492,3 +492,14 @@ Application Services must never instantiate Value Objects
 that belong to an Aggregate unless explicitly documented.
 
 Whenever possible, Aggregates construct and own their internal model.
+
+HTTP is a transport protocol.
+
+Never allow HTTP concepts
+to leak into Application or Domain.
+
+ProblemDetails belongs to Api.
+
+Status codes belong to Api.
+
+Business errors belong to Domain.

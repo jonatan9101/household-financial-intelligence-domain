@@ -3,8 +3,7 @@
 ## Published Events
 
 - HouseholdCreated
-- MemberAdded
-- MemberRemoved
+- HouseholdActivated
 - HouseholdArchived
 
 ## Referenced By
