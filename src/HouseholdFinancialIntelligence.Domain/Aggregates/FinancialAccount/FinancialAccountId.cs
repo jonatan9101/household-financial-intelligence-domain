@@ -8,4 +8,6 @@ public readonly record struct FinancialAccountId
     {
         Value = value;
     }
+
+    public static FinancialAccountId New() => new(Guid.NewGuid());
 }
