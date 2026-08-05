@@ -50,6 +50,26 @@ public static class DomainErrors
         public const string Required = "Household locale is required.";
     }
 
+    public static class AccountName
+    {
+        public const string Required = "Account name is required.";
+    }
+
+    public static class AccountIdentifier
+    {
+        public const string Required = "Account identifier is required.";
+    }
+
+    public static class AccountType
+    {
+        public const string Required = "Account type is required.";
+    }
+
+    public static class InstitutionName
+    {
+        public const string CannotBeBlank = "Institution name cannot be blank.";
+    }
+
     public static class Household
     {
         public const string BaseCurrencyCannotBeChangedOutsideDraft = "BaseCurrency can only be set while the Household is in Draft.";
