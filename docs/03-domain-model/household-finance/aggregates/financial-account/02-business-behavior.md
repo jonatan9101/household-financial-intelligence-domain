@@ -38,6 +38,19 @@
 
 Active &bull; Closed
 
-- Active: RenameFinancialAccount
 - Active -&gt; Closed: Close (only from Active; preserves historical movements)
 - Closed -&gt; Active: Reopen (only from Closed)
+
+## RenameFinancialAccount
+
+RenameFinancialAccount is a **metadata change**, not a lifecycle transition.
+
+It is allowed in both `Active` and `Closed` states.
+
+It changes only the `AccountName`; it never changes:
+
+- the lifecycle status,
+- the `AccountIdentifier` (business identity),
+- the `AccountType`,
+- the `Currency`,
+- the `Household` association.

@@ -52,7 +52,7 @@ Closing an account never removes existing FinancialMovements (FA-010).
 
 Given an account with an existing name
 When RenameFinancialAccount executes with a non-blank name
-Then the AccountName is updated (FA-006).
+Then the AccountName is updated, regardless of status (Active or Closed) (FA-006).
 
 ### AC-010 Rename Rejects BlankName
 
@@ -71,4 +71,5 @@ Then the action is rejected (FA-006).
 - Reject reopening an Active account
 - Rename account
 - Reject blank name on rename
+- Rename works in both Active and Closed
 - Immutability of AccountType, Currency, AccountIdentifier
