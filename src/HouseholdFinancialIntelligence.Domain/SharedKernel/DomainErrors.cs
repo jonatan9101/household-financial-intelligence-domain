@@ -70,6 +70,11 @@ public static class DomainErrors
         public const string CannotBeBlank = "Institution name cannot be blank.";
     }
 
+    public static class FinancialAccount
+    {
+        public const string CannotCloseExceptFromActive = "Only an active account can be closed.";
+    }
+
     public static class Household
     {
         public const string BaseCurrencyCannotBeChangedOutsideDraft = "BaseCurrency can only be set while the Household is in Draft.";

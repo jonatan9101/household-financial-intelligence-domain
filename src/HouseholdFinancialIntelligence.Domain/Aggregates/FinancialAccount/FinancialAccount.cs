@@ -38,7 +38,7 @@ public sealed class FinancialAccount : AggregateRoot<FinancialAccountId>
 
     public InstitutionName? Institution { get; }
 
-    public AccountStatus Status { get; }
+    public AccountStatus Status { get; private set; }
 
     public IReadOnlyCollection<object> DomainEvents => _domainEvents;
 
@@ -85,6 +85,20 @@ public sealed class FinancialAccount : AggregateRoot<FinancialAccountId>
         _domainEvents.Add(new FinancialAccountRenamed(
             Id,
             newName,
+            occurredAt));
+    }
+
+    public void Close(DateTimeOffset occurredAt)
+    {
+        if (Status != AccountStatus.Active)
+        {
+            throw new DomainException(DomainErrors.FinancialAccount.CannotCloseExceptFromActive);
+        }
+
+        Status = AccountStatus.Closed;
+
+        _domainEvents.Add(new FinancialAccountClosed(
+            Id,
             occurredAt));
     }
 }
