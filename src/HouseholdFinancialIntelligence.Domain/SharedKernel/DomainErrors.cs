@@ -73,6 +73,7 @@ public static class DomainErrors
     public static class FinancialAccount
     {
         public const string CannotCloseExceptFromActive = "Only an active account can be closed.";
+        public const string CannotReopenExceptFromClosed = "Only a closed account can be reopened.";
     }
 
     public static class Household
