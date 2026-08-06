@@ -244,6 +244,19 @@ public class FinancialAccountTests
         renamed.OccurredAt.Should().Be(OccurredAt);
     }
 
+    [Fact]
+    public void Given_ActiveAccount_When_RenamingToCurrentName_Then_AccountNameRemainsSet()
+    {
+        var account = RegisterValidAccount();
+        var currentName = account.AccountName;
+
+        account.Rename(currentName, OccurredAt);
+        account.Rename(currentName, OccurredAt);
+
+        account.AccountName.Should().Be(currentName);
+        account.AccountName.Value.Should().Be("Main Checking");
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("   ")]
