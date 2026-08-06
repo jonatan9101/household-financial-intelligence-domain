@@ -8,7 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/) and this 
 
 ### Added
 
-- n/a
+- **FinancialAccount aggregate (complete):** `Register`, `Rename`, `Close`, `Reopen` commands; FA-001..FA-010 rules; `FinancialAccountRegistered/Renamed/Closed/Reopened` domain events; Value Objects (`AccountName`, `AccountIdentifier`, `AccountType`, `InstitutionName`, `AccountStatus`). 29 domain tests, Domain 100% line + branch coverage.
 
 ## [0.1.0] - 2026-08-03
 

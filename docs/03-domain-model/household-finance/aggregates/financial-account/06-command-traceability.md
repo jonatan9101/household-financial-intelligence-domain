@@ -2,7 +2,7 @@
 
 Tracks, per implemented command, which business rules it enforces and which tests cover them.
 
-> Status: Phase 1 (documentation) complete. Implementation and test coverage are recorded here during Phase 2.
+> Status: Complete. All four commands (Register, Rename, Close, Reopen) are implemented, tested, and reviewer-approved.
 
 ## RegisterFinancialAccount()
 
@@ -28,19 +28,17 @@ Tracks, per implemented command, which business rules it enforces and which test
 | ---------------------- | -------------- |
 | ReopenFinancialAccount() | FA-008 (only Closed can reopen) |
 
-## Acceptance Criteria Mapping — Pending
+## Acceptance Criteria Mapping — Final
 
-| AC   | Rule                          | Test Name (planned)                                    |
-| ---- | ----------------------------- | ------------------------------------------------------- |
-| AC-001 | FA-006, FA-009              | Given_ValidFacts_When_Registering_Then_AccountIsActive |
-| AC-002 | FA-009                        | Given_DuplicateIdentifier_When_Registering_Then_Rejected |
-| AC-003 | FA-006                        | Given_BlankName_When_Registering_Then_Rejected         |
-| AC-004 | FA-007                        | Given_ActiveAccount_When_Closing_Then_StatusBecomesClosed |
-| AC-005 | FA-007                        | Given_ClosedAccount_When_Closing_Then_Rejected         |
-| AC-006 | FA-008                        | Given_ClosedAccount_When_Reopening_Then_StatusBecomesActive |
-| AC-007 | FA-008                        | Given_ActiveAccount_When_Reopening_Then_Rejected       |
-| AC-008 | FA-010                        | Given_Closing_Then_MovementsArePreserved               |
-| AC-009 | FA-006                        | Given_Renaming_Then_NameIsUpdated                      |
-| AC-010 | FA-006                        | Given_BlankName_When_Renaming_Then_Rejected            |
-
-> Test names above are the target. Final names are recorded in Phase 2 as each command is implemented.
+| AC   | Rule                          | Test Name                                                             |
+| ---- | ----------------------------- | --------------------------------------------------------------------- |
+| AC-001 | FA-006, FA-009              | Given_ValidFacts_When_Registering_Then_AccountIsActive               |
+| AC-002 | FA-009                        | (cross-instance; enforced by persistence unique constraint)          |
+| AC-003 | FA-006                        | Given_BlankAccountName_When_Registering_Then_DomainExceptionIsThrown |
+| AC-004 | FA-007                        | Given_ActiveAccount_When_Closing_Then_StatusBecomesClosed            |
+| AC-005 | FA-007                        | Given_ClosedAccount_When_ClosingAgain_Then_DomainExceptionIsThrown   |
+| AC-006 | FA-008                        | Given_ClosedAccount_When_Reopening_Then_StatusBecomesActive          |
+| AC-007 | FA-008                        | Given_ActiveAccount_When_Reopening_Then_DomainExceptionIsThrown      |
+| AC-008 | FA-010                        | Given_ActiveAccount_When_Closing_Then_IdentityAndMetadataAreUnchanged |
+| AC-009 | FA-006                        | Given_ActiveAccount_When_Renaming_Then_AccountNameIsUpdated          |
+| AC-010 | FA-006                        | Given_BlankAccountName_When_Renaming_Then_DomainExceptionIsThrown    |
