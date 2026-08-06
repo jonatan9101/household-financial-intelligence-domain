@@ -364,4 +364,83 @@ public class FinancialAccountTests
         action.Should().Throw<DomainException>()
             .WithMessage(DomainErrors.FinancialAccount.CannotCloseExceptFromActive);
     }
+
+    [Fact]
+    public void Given_ClosedAccount_When_Reopening_Then_StatusBecomesActive()
+    {
+        var account = RegisterValidAccount();
+        account.Close(OccurredAt);
+
+        account.Reopen(OccurredAt);
+
+        account.Status.Should().Be(AccountStatus.Active);
+        account.Status.Status.Should().Be("Active");
+    }
+
+    [Fact]
+    public void Given_ClosedAccount_When_Reopening_Then_SingleFinancialAccountReopenedEventIsPublished()
+    {
+        var account = RegisterValidAccount();
+        account.Close(OccurredAt);
+
+        account.Reopen(OccurredAt);
+
+        var reopened = account.DomainEvents.OfType<FinancialAccountReopened>().Single();
+        reopened.FinancialAccountId.Should().Be(account.Id);
+        reopened.OccurredAt.Should().Be(OccurredAt);
+    }
+
+    [Fact]
+    public void Given_ClosedAccount_When_Reopening_Then_IdentityAndMetadataAreUnchanged()
+    {
+        var account = RegisterValidAccount();
+        var id = account.Id;
+        var householdId = account.HouseholdId;
+        var accountType = account.AccountType;
+        var name = account.AccountName;
+        var identifier = account.AccountIdentifier;
+        var currency = account.Currency;
+        account.Close(OccurredAt);
+
+        account.Reopen(OccurredAt);
+
+        account.Id.Should().Be(id);
+        account.HouseholdId.Should().Be(householdId);
+        account.AccountType.Should().Be(accountType);
+        account.AccountName.Should().Be(name);
+        account.AccountIdentifier.Should().Be(identifier);
+        account.Currency.Should().Be(currency);
+    }
+
+    [Fact]
+    public void Given_ActiveAccount_When_Reopening_Then_DomainExceptionIsThrown()
+    {
+        var account = RegisterValidAccount();
+
+        var action = () => account.Reopen(OccurredAt);
+
+        action.Should().Throw<DomainException>()
+            .WithMessage(DomainErrors.FinancialAccount.CannotReopenExceptFromClosed);
+    }
+
+    [Fact]
+    public void Given_ActiveAccount_When_ClosingThenReopening_Then_OnlyLifecycleChanged()
+    {
+        var account = RegisterValidAccount();
+        var householdId = account.HouseholdId;
+        var accountType = account.AccountType;
+        var name = account.AccountName;
+        var identifier = account.AccountIdentifier;
+        var currency = account.Currency;
+
+        account.Close(OccurredAt);
+        account.Reopen(OccurredAt);
+
+        account.Status.Should().Be(AccountStatus.Active);
+        account.HouseholdId.Should().Be(householdId);
+        account.AccountName.Should().Be(name);
+        account.AccountIdentifier.Should().Be(identifier);
+        account.AccountType.Should().Be(accountType);
+        account.Currency.Should().Be(currency);
+    }
 }

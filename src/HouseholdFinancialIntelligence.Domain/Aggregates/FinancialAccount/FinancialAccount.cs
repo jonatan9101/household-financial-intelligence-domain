@@ -101,4 +101,18 @@ public sealed class FinancialAccount : AggregateRoot<FinancialAccountId>
             Id,
             occurredAt));
     }
+
+    public void Reopen(DateTimeOffset occurredAt)
+    {
+        if (Status != AccountStatus.Closed)
+        {
+            throw new DomainException(DomainErrors.FinancialAccount.CannotReopenExceptFromClosed);
+        }
+
+        Status = AccountStatus.Active;
+
+        _domainEvents.Add(new FinancialAccountReopened(
+            Id,
+            occurredAt));
+    }
 }
