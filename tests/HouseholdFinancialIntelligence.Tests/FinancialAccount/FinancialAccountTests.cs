@@ -206,7 +206,16 @@ public class FinancialAccountTests
         typeof(FinancialAccount).GetProperty(nameof(account.AccountIdentifier))!.CanWrite.Should().BeFalse();
         typeof(FinancialAccount).GetProperty(nameof(account.Currency))!.CanWrite.Should().BeFalse();
         typeof(FinancialAccount).GetProperty(nameof(account.Institution))!.CanWrite.Should().BeFalse();
-        typeof(FinancialAccount).GetProperty(nameof(account.Status))!.CanWrite.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Given_RegisteredAccount_When_InspectingStatus_SetIsNotPublic()
+    {
+        var property = typeof(FinancialAccount).GetProperty(nameof(FinancialAccount.Status))!;
+
+        property.CanWrite.Should().BeTrue();
+        property.SetMethod!.IsPublic.Should().BeFalse();
+        property.GetMethod!.IsPublic.Should().BeTrue();
     }
 
     [Fact]
@@ -298,5 +307,61 @@ public class FinancialAccountTests
         account.ClearDomainEvents();
 
         account.DomainEvents.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Given_ActiveAccount_When_Closing_Then_StatusBecomesClosed()
+    {
+        var account = RegisterValidAccount();
+
+        account.Close(OccurredAt);
+
+        account.Status.Should().Be(AccountStatus.Closed);
+        account.Status.Status.Should().Be("Closed");
+    }
+
+    [Fact]
+    public void Given_ActiveAccount_When_Closing_Then_SingleFinancialAccountClosedEventIsPublished()
+    {
+        var account = RegisterValidAccount();
+
+        account.Close(OccurredAt);
+
+        var closed = account.DomainEvents.OfType<FinancialAccountClosed>().Single();
+        closed.FinancialAccountId.Should().Be(account.Id);
+        closed.OccurredAt.Should().Be(OccurredAt);
+    }
+
+    [Fact]
+    public void Given_ActiveAccount_When_Closing_Then_IdentityAndMetadataAreUnchanged()
+    {
+        var account = RegisterValidAccount();
+        var id = account.Id;
+        var householdId = account.HouseholdId;
+        var accountType = account.AccountType;
+        var name = account.AccountName;
+        var identifier = account.AccountIdentifier;
+        var currency = account.Currency;
+
+        account.Close(OccurredAt);
+
+        account.Id.Should().Be(id);
+        account.HouseholdId.Should().Be(householdId);
+        account.AccountType.Should().Be(accountType);
+        account.AccountName.Should().Be(name);
+        account.AccountIdentifier.Should().Be(identifier);
+        account.Currency.Should().Be(currency);
+    }
+
+    [Fact]
+    public void Given_ClosedAccount_When_ClosingAgain_Then_DomainExceptionIsThrown()
+    {
+        var account = RegisterValidAccount();
+        account.Close(OccurredAt);
+
+        var action = () => account.Close(OccurredAt);
+
+        action.Should().Throw<DomainException>()
+            .WithMessage(DomainErrors.FinancialAccount.CannotCloseExceptFromActive);
     }
 }
