@@ -29,7 +29,7 @@ Excluded:
 ## Responsibilities
 
 - Register financial accounts
-- Maintain account metadata
+- Maintain account metadata (e.g. RenameFinancialAccount, a metadata change available in both `Active` and `Closed`)
 - Associate account to one Household
 - Protect account lifecycle
 

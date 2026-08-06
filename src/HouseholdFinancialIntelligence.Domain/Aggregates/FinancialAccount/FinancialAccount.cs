@@ -30,7 +30,7 @@ public sealed class FinancialAccount : AggregateRoot<FinancialAccountId>
 
     public AccountType AccountType { get; }
 
-    public AccountName AccountName { get; }
+    public AccountName AccountName { get; private set; }
 
     public AccountIdentifier AccountIdentifier { get; }
 
@@ -76,5 +76,15 @@ public sealed class FinancialAccount : AggregateRoot<FinancialAccountId>
             occurredAt));
 
         return account;
+    }
+
+    public void Rename(AccountName newName, DateTimeOffset occurredAt)
+    {
+        AccountName = newName;
+
+        _domainEvents.Add(new FinancialAccountRenamed(
+            Id,
+            newName,
+            occurredAt));
     }
 }

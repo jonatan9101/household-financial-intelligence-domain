@@ -203,11 +203,59 @@ public class FinancialAccountTests
         typeof(FinancialAccount).GetProperty(nameof(account.Id))!.CanWrite.Should().BeFalse();
         typeof(FinancialAccount).GetProperty(nameof(account.HouseholdId))!.CanWrite.Should().BeFalse();
         typeof(FinancialAccount).GetProperty(nameof(account.AccountType))!.CanWrite.Should().BeFalse();
-        typeof(FinancialAccount).GetProperty(nameof(account.AccountName))!.CanWrite.Should().BeFalse();
         typeof(FinancialAccount).GetProperty(nameof(account.AccountIdentifier))!.CanWrite.Should().BeFalse();
         typeof(FinancialAccount).GetProperty(nameof(account.Currency))!.CanWrite.Should().BeFalse();
         typeof(FinancialAccount).GetProperty(nameof(account.Institution))!.CanWrite.Should().BeFalse();
         typeof(FinancialAccount).GetProperty(nameof(account.Status))!.CanWrite.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Given_RegisteredAccount_When_InspectingAccountName_SetIsNotPublic()
+    {
+        var property = typeof(FinancialAccount).GetProperty(nameof(FinancialAccount.AccountName))!;
+
+        property.CanWrite.Should().BeTrue();
+        property.SetMethod!.IsPublic.Should().BeFalse();
+        property.GetMethod!.IsPublic.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Given_ActiveAccount_When_Renaming_Then_AccountNameIsUpdated()
+    {
+        var account = RegisterValidAccount();
+        var newName = new AccountName("Family Savings");
+
+        account.Rename(newName, OccurredAt);
+
+        account.AccountName.Should().Be(newName);
+        account.AccountName.Value.Should().Be("Family Savings");
+    }
+
+    [Fact]
+    public void Given_Account_When_Renaming_Then_SingleFinancialAccountRenamedEventIsPublished()
+    {
+        var account = RegisterValidAccount();
+
+        account.Rename(new AccountName("Family Savings"), OccurredAt);
+
+        var renamed = account.DomainEvents.OfType<FinancialAccountRenamed>().Single();
+        renamed.FinancialAccountId.Should().Be(account.Id);
+        renamed.AccountName.Should().Be(new AccountName("Family Savings"));
+        renamed.OccurredAt.Should().Be(OccurredAt);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(null)]
+    public void Given_BlankAccountName_When_Renaming_Then_DomainExceptionIsThrown(string? accountName)
+    {
+        var account = RegisterValidAccount();
+
+        var action = () => account.Rename(new AccountName(accountName!), OccurredAt);
+
+        action.Should().Throw<DomainException>()
+            .WithMessage(DomainErrors.AccountName.Required);
     }
 
     [Fact]
