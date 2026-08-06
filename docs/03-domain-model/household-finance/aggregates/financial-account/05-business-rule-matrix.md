@@ -25,10 +25,10 @@ Every Aggregate method must justify its existence by protecting at least one rul
 
 | Method                     | Protected Rules        | Justification                                                                   | Status  |
 | -------------------------- | ---------------------- | ------------------------------------------------------------------------------- | ------- |
-| FinancialAccount.Register  | FA-001..003, FA-005, FA-006, FA-009, FA-010 | Creates an Active account with immutable metadata, immutable unique AccountIdentifier, and a required non-blank AccountName. | Pending |
-| FinancialAccount.Rename    | FA-006                 | Updates AccountName while keeping it required and non-blank.                   | Pending |
-| FinancialAccount.Close     | FA-004, FA-007, FA-010 | Moves Active to Closed only, preserving historical movements.                  | Pending |
-| FinancialAccount.Reopen    | FA-008                 | Moves Closed to Active only.                                                   | Pending |
+| FinancialAccount.Register  | FA-001..003, FA-005, FA-006, FA-009, FA-010 | Creates an Active FinancialAccount with immutable metadata, immutable unique AccountIdentifier, and a required non-blank AccountName. | Implemented |
+| FinancialAccount.Rename    | FA-006                 | Updates AccountName while keeping it required and non-blank.                   | Implemented |
+| FinancialAccount.Close     | FA-004, FA-007, FA-010 | Moves Active to Closed only, preserving historical movements.                 | Implemented |
+| FinancialAccount.Reopen    | FA-008                 | Moves Closed to Active only.                                                    | Implemented |
 
 ## Notes
 

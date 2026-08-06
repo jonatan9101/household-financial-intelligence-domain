@@ -232,6 +232,37 @@ Checklist:
 
 ---
 
+## M8 — FinancialAccount Aggregate (Domain)
+
+**Status:** completed
+
+- **Goal:** Implement the FinancialAccount aggregate end-to-end (4 commands) following the one-command-per-iteration flow, keeping the Domain isolated.
+- **Business capability:** Financial Acquisition → maintain Financial Account metadata and lifecycle.
+- **Commands:** Register, Rename, Close, Reopen.
+- **Files created:**
+  - `src/HouseholdFinancialIntelligence.Domain/Aggregates/FinancialAccount/FinancialAccount.cs`
+  - `src/HouseholdFinancialIntelligence.Domain/Aggregates/FinancialAccount/{FinancialAccountId,AccountName,AccountIdentifier,AccountType,InstitutionName,AccountStatus}.cs`
+  - `src/HouseholdFinancialIntelligence.Domain/Aggregates/FinancialAccount/Events/{FinancialAccountRegistered,FinancialAccountRenamed,FinancialAccountClosed,FinancialAccountReopened}.cs`
+  - `docs/03-domain-model/household-finance/aggregates/financial-account/{01..06}.md`
+- **Business rules:** FA-001 . FA-010 covered (matrix Implemented; FA-004/FA-010 cross-aggregate delegated to FinancialMovement, FA-009 to persistence).
+- **Tests:** 29 domain tests (Given_When_Then); Domain coverage 100% line + 100% branch (39 classes).
+- **Reviewers:** business, aggregate, architecture, code, pr - all APPROVED on each command and at closure.
+- **Acceptance criteria:** All four commands protected by rules; lifecycle Active <-> Closed explicit; aggregate does not touch FinancialMovement/balances/other Aggregates.
+
+Checklist:
+
+- [x] RegisterFinancialAccount implemented + tested
+- [x] RenameFinancialAccount implemented + tested
+- [x] CloseFinancialAccount implemented + tested
+- [x] ReopenFinancialAccount implemented + tested
+- [x] Business Rule Matrix: no Pending entries
+- [x] Command Traceability at 100%
+- [x] 100% line and branch coverage (Domain)
+- [x] CHANGELOG updated
+- [x] Aggregate marked Completed
+
+---
+
 ## Documentation Backlog
 
 - [ ] **TODO** — Define the canonical MovementType taxonomy. `MovementType` is currently an unconstrained string Value Object (not null / not empty / trimmed). The FM-003 `UnsupportedMovementType` business rule must NOT be enforced until an authoritative taxonomy exists (the Financial Movement examples in `docs/01-business/01-ubiquitous-language.md` are illustrative, not normative). Once defined, `MovementType` can evolve into a constrained Value Object or enum without changing the aggregate's responsibilities.
